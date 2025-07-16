@@ -1,0 +1,54 @@
+# .github/workflows/build.yml
+name: Build AutoTyper
+
+on:
+  push:
+    tags: ['v*.*.*']    # e.g. v1.0.0
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        python: [3.12]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller pyautogui
+
+      - name: Build with PyInstaller
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            # macOS bundle
+            pyinstaller \
+              --windowed \
+              --name "AutoTyper" \
+              --icon icon.icns \
+              writer.py
+          else
+            # Windows onefile .exe
+            pyinstaller \
+              --windowed \
+              --onefile \
+              --name "AutoTyper" \
+              --icon icon.icns \
+              writer.py
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: AutoTyper-${{ matrix.os }}
+          path: |
+            dist/AutoTyper.app       # macOS
+            dist/AutoTyper.exe       # Windows
