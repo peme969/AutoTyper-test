@@ -1,6 +1,11 @@
 # .github/workflows/release-build.yml
 name: Build & Upload Release Assets
 
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
 on:
   release:
     types: [published]
@@ -31,16 +36,13 @@ jobs:
         id: build
         run: |
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # Build macOS .app
             pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
-            # Zip only the .app bundle inside dist/
             cd dist
             zip -r AutoTyper-macOS.zip AutoTyper.app
             cd ..
             echo "artifact_path=dist/AutoTyper-macOS.zip"  >> $GITHUB_OUTPUT
             echo "artifact_name=AutoTyper-macOS.zip"       >> $GITHUB_OUTPUT
           else
-            # Build Windows .exe
             pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
             echo "artifact_path=dist/AutoTyper.exe"        >> $GITHUB_OUTPUT
             echo "artifact_name=AutoTyper-Windows.exe"    >> $GITHUB_OUTPUT
