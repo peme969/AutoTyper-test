@@ -10,7 +10,6 @@ on:
 
 jobs:
   build-windows:
-    name: Windows
     runs-on: windows-latest
 
     steps:
@@ -27,11 +26,7 @@ jobs:
           pip install pyinstaller pyautogui pillow
 
       - name: Build .exe
-        run: |
-          pyinstaller --windowed --onefile \
-            --name "AutoTyper" \
-            --icon icon.icns \
-            writer.py
+        run: pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
 
       - name: Upload Windows asset
         uses: actions/upload-release-asset@v1
