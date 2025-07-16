@@ -1,0 +1,8 @@
+/dist/
+/build/
+/pycache/
+/.spec
+/.app
+/*.exe
+*.pyc
+.DS_Store
