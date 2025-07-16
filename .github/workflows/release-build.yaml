@@ -1,5 +1,5 @@
-# .github/workflows/release-build.yml
-name: Build & Upload Release Assets
+# .github/workflows/build-windows.yml
+name: Build Windows AutoTyper
 
 permissions:
   contents: write
@@ -9,50 +9,12 @@ on:
     types: [published]
 
 jobs:
-  build-macos:
-    name: macOS arm64
-    runs-on: macos-latest
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12'
-
-      - name: Install deps
-        run: |
-          pip install --upgrade pip
-          pip install pyinstaller pyautogui pillow
-
-      - name: Build arm64 .app
-        run: |
-          pyinstaller --windowed \
-            --name "AutoTyper" \
-            --icon icon.icns \
-            writer.py
-          cd dist
-          zip -r AutoTyper-macOS-arm64.zip AutoTyper.app
-
-      - name: Upload macOS asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url:        ${{ github.event.release.upload_url }}
-          asset_path:        dist/AutoTyper-macOS-arm64.zip
-          asset_name:        AutoTyper-macOS-arm64.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
-
   build-windows:
     name: Windows
     runs-on: windows-latest
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -65,7 +27,6 @@ jobs:
           pip install pyinstaller pyautogui pillow
 
       - name: Build .exe
-        shell: bash
         run: |
           pyinstaller --windowed --onefile \
             --name "AutoTyper" \
