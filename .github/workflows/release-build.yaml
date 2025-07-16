@@ -19,7 +19,7 @@ jobs:
           - os: macos-latest
             arch: x86_64
           - os: windows-latest
-            arch: ''      # no arch for Windows
+            arch: ''
         python: [3.12]
 
     steps:
@@ -38,37 +38,38 @@ jobs:
 
       - name: Build AutoTyper
         id: build
+        shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
-            echo "artifact_path=dist/AutoTyper.exe"                             >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-Windows.exe"                         >> $GITHUB_OUTPUT
+            echo "artifact_path=dist/AutoTyper.exe"        >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-Windows.exe"     >> $GITHUB_OUTPUT
 
           else
-            # macOS builds: use arch prefix for Intel
-            PREFIX=""
+            # On macOS, for Intel builds invoke under Rosetta:
             if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-              PREFIX="arch -x86_64"
+              prefix="arch -x86_64"
+            else
+              prefix=""
             fi
 
-            # Build the .app
-            $PREFIX pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
+            $prefix pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
 
-            # Zip only the .app bundle
+            # Zip only the .app bundle inside dist/
             cd dist
             zip -r AutoTyper-macOS-${{ matrix.arch }}.zip AutoTyper.app
             cd ..
 
-            echo "artifact_path=dist/AutoTyper-macOS-${{ matrix.arch }}.zip"      >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-macOS-${{ matrix.arch }}.zip"         >> $GITHUB_OUTPUT
+            echo "artifact_path=dist/AutoTyper-macOS-${{ matrix.arch }}.zip" >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-macOS-${{ matrix.arch }}.zip"      >> $GITHUB_OUTPUT
           fi
 
       - name: Upload to GitHub Release
         uses: actions/upload-release-asset@v1
         with:
-          upload_url:    ${{ github.event.release.upload_url }}
-          asset_path:    ${{ steps.build.outputs.artifact_path }}
-          asset_name:    ${{ steps.build.outputs.artifact_name }}
+          upload_url:      ${{ github.event.release.upload_url }}
+          asset_path:      ${{ steps.build.outputs.artifact_path }}
+          asset_name:      ${{ steps.build.outputs.artifact_name }}
           asset_content_type: application/octet-stream
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
