@@ -9,75 +9,94 @@ on:
     types: [published]
 
 jobs:
-  build-and-upload:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: macos-latest
-            arch: arm64
-          - os: macos-latest
-            arch: x86_64
-          - os: windows-latest
-            arch: ''
-        python: [3.12]
-
+  build-macos-arm:
+    name: macOS arm64
+    runs-on: macos-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python }}
+        with: python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           pip install --upgrade pip
           pip install pyinstaller pyautogui pillow
 
-      - name: Build AutoTyper
-        id: build
-        shell: bash
+      - name: Build arm64 .app
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            # Windows build: Pillow lets PyInstaller convert .icns to .ico automatically
-            pyinstaller --windowed --onefile \
-              --name "AutoTyper" \
-              --icon icon.icns \
-              writer.py
+          pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
+          cd dist
+          zip -r AutoTyper-macOS-arm64.zip AutoTyper.app
 
-            echo "artifact_path=dist/AutoTyper.exe"        >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-Windows.exe"     >> $GITHUB_OUTPUT
-
-          else
-            # macOS build: support Intel via Rosetta
-            if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-              prefix="arch -x86_64"
-            else
-              prefix=""
-            fi
-
-            $prefix pyinstaller --windowed \
-              --name "AutoTyper" \
-              --icon icon.icns \
-              writer.py
-
-            # Zip only the .app bundle
-            cd dist
-            zip -r AutoTyper-macOS-${{ matrix.arch }}.zip AutoTyper.app
-            cd ..
-
-            echo "artifact_path=dist/AutoTyper-macOS-${{ matrix.arch }}.zip"  >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-macOS-${{ matrix.arch }}.zip"       >> $GITHUB_OUTPUT
-          fi
-
-      - name: Upload to GitHub Release
+      - name: Upload arm64 zip
         uses: actions/upload-release-asset@v1
         with:
-          upload_url:         ${{ github.event.release.upload_url }}
-          asset_path:         ${{ steps.build.outputs.artifact_path }}
-          asset_name:         ${{ steps.build.outputs.artifact_name }}
+          upload_url:    ${{ github.event.release.upload_url }}
+          asset_path:    dist/AutoTyper-macOS-arm64.zip
+          asset_name:    AutoTyper-macOS-arm64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos-intel:
+    name: macOS x86_64
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with: python-version: '3.12'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller pyautogui pillow
+
+      - name: Build x86_64 .app under Rosetta
+        run: |
+          arch -x86_64 pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
+          cd dist
+          zip -r AutoTyper-macOS-x86_64.zip AutoTyper.app
+
+      - name: Upload x86_64 zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url:    ${{ github.event.release.upload_url }}
+          asset_path:    dist/AutoTyper-macOS-x86_64.zip
+          asset_name:    AutoTyper-macOS-x86_64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with: python-version: '3.12'
+
+      - name: Install deps
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller pyautogui pillow
+
+      - name: Build .exe
+        shell: bash
+        run: |
+          pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
+
+      - name: Upload EXE
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url:    ${{ github.event.release.upload_url }}
+          asset_path:    dist/AutoTyper.exe
+          asset_name:    AutoTyper-Windows.exe
           asset_content_type: application/octet-stream
         env:
-          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
