@@ -1,9 +1,9 @@
+# .github/workflows/release-build.yml
 name: Build & Upload Release Assets
 
 on:
   release:
-    # run on both new (“created”) and finalized (“published”) releases
-    types: [created, published]
+    types: [published]
 
 jobs:
   build-and-upload:
@@ -28,23 +28,24 @@ jobs:
           pip install pyinstaller pyautogui
 
       - name: Build AutoTyper
+        id: build
         run: |
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
-            echo "dist/AutoTyper.app" > artifact-path.txt
-            echo "AutoTyper-macOS.app"   > artifact-name.txt
+            echo "artifact_path=dist/AutoTyper.app" >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-macOS.app"  >> $GITHUB_OUTPUT
           else
             pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
-            echo "dist/AutoTyper.exe"    > artifact-path.txt
-            echo "AutoTyper-Windows.exe" > artifact-name.txt
+            echo "artifact_path=dist/AutoTyper.exe"   >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-Windows.exe" >> $GITHUB_OUTPUT
           fi
 
       - name: Upload to GitHub Release
         uses: actions/upload-release-asset@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path:  ${{ steps.build.outputs.artifact-path }}
-          asset_name:  ${{ steps.build.outputs.artifact-name }}
+          upload_url:    ${{ github.event.release.upload_url }}
+          asset_path:    ${{ steps.build.outputs.artifact_path }}
+          asset_name:    ${{ steps.build.outputs.artifact_name }}
           asset_content_type: application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
