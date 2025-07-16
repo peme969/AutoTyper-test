@@ -31,13 +31,19 @@ jobs:
         id: build
         run: |
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            # Build macOS .app
             pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
-            echo "artifact_path=dist/AutoTyper.app" >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-macOS.app"  >> $GITHUB_OUTPUT
+            # Zip only the .app bundle inside dist/
+            cd dist
+            zip -r AutoTyper-macOS.zip AutoTyper.app
+            cd ..
+            echo "artifact_path=dist/AutoTyper-macOS.zip"  >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-macOS.zip"       >> $GITHUB_OUTPUT
           else
+            # Build Windows .exe
             pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
-            echo "artifact_path=dist/AutoTyper.exe"   >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-Windows.exe" >> $GITHUB_OUTPUT
+            echo "artifact_path=dist/AutoTyper.exe"        >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-Windows.exe"    >> $GITHUB_OUTPUT
           fi
 
       - name: Upload to GitHub Release
