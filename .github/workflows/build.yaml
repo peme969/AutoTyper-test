@@ -1,10 +1,9 @@
-# .github/workflows/build.yml
-name: Build AutoTyper
+name: Release Build
 
+# Trigger whenever you publish or update a release on GitHub:
 on:
-  push:
-    tags: ['v*.*.*']    # e.g. v1.0.0
-  workflow_dispatch:
+  release:
+    types: [published]
 
 jobs:
   build:
@@ -13,8 +12,10 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
         python: [3.12]
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Check out code
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -29,14 +30,12 @@ jobs:
       - name: Build with PyInstaller
         run: |
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # macOS bundle
             pyinstaller \
               --windowed \
               --name "AutoTyper" \
               --icon icon.icns \
               writer.py
           else
-            # Windows onefile .exe
             pyinstaller \
               --windowed \
               --onefile \
@@ -45,10 +44,26 @@ jobs:
               writer.py
           fi
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: AutoTyper-${{ matrix.os }}
-          path: |
-            dist/AutoTyper.app       # macOS
-            dist/AutoTyper.exe       # Windows
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          body: ${{ github.event.release.body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload built assets
+        uses: actions/upload-release-asset@v2
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: |
+            dist/AutoTyper.app
+            dist/AutoTyper.exe
+          asset_name: |
+            AutoTyper-${{ matrix.os }}${{ matrix.os == 'macos-latest' && '.app' || '.exe' }}
+          asset_content_type: application/octet-stream
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
