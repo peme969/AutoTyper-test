@@ -3,8 +3,6 @@ name: Build & Upload Release Assets
 
 permissions:
   contents: write
-  packages: write
-  actions: read
 
 on:
   release:
@@ -15,7 +13,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-latest
+            arch: x86_64
+          - os: windows-latest
+            arch: ''      # no arch for Windows
         python: [3.12]
 
     steps:
@@ -35,17 +39,28 @@ jobs:
       - name: Build AutoTyper
         id: build
         run: |
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
-            cd dist
-            zip -r AutoTyper-macOS.zip AutoTyper.app
-            cd ..
-            echo "artifact_path=dist/AutoTyper-macOS.zip"  >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-macOS.zip"       >> $GITHUB_OUTPUT
-          else
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             pyinstaller --windowed --onefile --name "AutoTyper" --icon icon.icns writer.py
-            echo "artifact_path=dist/AutoTyper.exe"        >> $GITHUB_OUTPUT
-            echo "artifact_name=AutoTyper-Windows.exe"    >> $GITHUB_OUTPUT
+            echo "artifact_path=dist/AutoTyper.exe"                             >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-Windows.exe"                         >> $GITHUB_OUTPUT
+
+          else
+            # macOS builds: use arch prefix for Intel
+            PREFIX=""
+            if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+              PREFIX="arch -x86_64"
+            fi
+
+            # Build the .app
+            $PREFIX pyinstaller --windowed --name "AutoTyper" --icon icon.icns writer.py
+
+            # Zip only the .app bundle
+            cd dist
+            zip -r AutoTyper-macOS-${{ matrix.arch }}.zip AutoTyper.app
+            cd ..
+
+            echo "artifact_path=dist/AutoTyper-macOS-${{ matrix.arch }}.zip"      >> $GITHUB_OUTPUT
+            echo "artifact_name=AutoTyper-macOS-${{ matrix.arch }}.zip"         >> $GITHUB_OUTPUT
           fi
 
       - name: Upload to GitHub Release
