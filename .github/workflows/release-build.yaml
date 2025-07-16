@@ -12,6 +12,7 @@ jobs:
   build-macos:
     name: macOS universal2
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v3
 
@@ -30,7 +31,7 @@ jobs:
           pyinstaller --windowed \
             --name "AutoTyper" \
             --icon icon.icns \
-            --target-arch "arm64;x86_64" \
+            --target-arch universal2 \
             writer.py
           cd dist
           zip -r AutoTyper-macOS-universal2.zip AutoTyper.app
@@ -45,9 +46,11 @@ jobs:
         env:
           GITHUB_TOKEN:     ${{ secrets.GITHUB_TOKEN }}
 
+
   build-windows:
     name: Windows
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v3
 
